@@ -27,6 +27,20 @@ def test_chat_returns_citations_array(client, monkeypatch):
     assert body["citations"][0]["page"] == 1
 
 
+def test_chat_accepts_legacy_payload_shape(client, monkeypatch):
+    monkeypatch.setattr("app.api.routes.chat.retrieve", lambda collection_id, question: [])
+    monkeypatch.setattr("app.api.routes.chat.chat_with_ollama", lambda messages: "answer")
+
+    col = client.post("/api/collections", json={"name": "Legacy"}).json()
+    payload = {"collection_id": str(col["id"]), "message": "free", "strict_mode": False, "session_id": "default"}
+    res = client.post("/api/chat", json=payload)
+    body = res.json()
+
+    assert res.status_code == 200
+    assert body["answer"] == "answer"
+    assert isinstance(body["session_id"], int)
+
+
 def test_retrieval_returns_page_numbers():
     # Retrieval format contract test
     hit = {"metadata": {"page": 3, "filename": "z.pdf", "chunk_id": "k"}}
